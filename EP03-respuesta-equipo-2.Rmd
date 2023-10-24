@@ -1,0 +1,200 @@
+---
+title: "EP03-respuesta-equipo-2"
+output: html_document
+date: "2023-09-21"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+#### Pregunta 1
+
+**Si el ingeniero está seguro de que el verdadero volumen medio no puede ser inferior a 10 litros y piensa rechazar la hipótesis nula cuando la muestra presente una media mayor a 10,25 litros, ¿cuál es la probabilidad de que cometa un error de tipo I? Para responder, generen un gráfico de la distribución muestral de las medias hipotetizada en donde se marque la zona correspondiente a la probabilidad solicitada, para luego, basándose en este gráfico, calcular el área correspondiente.**
+
+Primero, se ha de generar el gráfico con la zona correspondiente a la probabilidad solicitada, la cual representa el rechazo de la hipótesis nula.
+
+```{r}
+library(ggpubr)
+library(pwr)
+
+# Fijar valores conocidos.
+sigma <- 1
+n <- 100
+media_nula <- 10
+
+# Calcular el error estándar.
+SE <- sigma / sqrt(n)
+
+x <- seq(9.5, 11, by = 0.01)
+y <- dnorm(x, mean = media_nula, sd = SE)
+my_data <- data.frame(x, y) 
+g <- ggplot(data = my_data, aes(x))
+
+g <- g + stat_function(
+  fun = dnorm,
+  args = list(mean = media_nula, sd = SE),
+  color = "red",
+  size = 1
+)
+
+g <- g + ylab(" ")
+g <- g + scale_y_continuous(breaks = NULL)
+g <- g + scale_x_continuous(
+  name = "Cantidad media de litros",
+  breaks = seq(9.5, 10.5, 0.2)
+)
+
+g <- g + theme_pubr()
+
+q_critico_superior <- 10.25
+
+g <- g + geom_area(
+  data = subset(my_data, x > q_critico_superior),  
+  aes(y = y),
+  color = "red",
+  fill = "red",
+  alpha = 0.5
+)
+print(g)
+
+```
+
+Ahora, se calculará la probabilidad de cometer un error de tipo I.
+
+```{r}
+# Probabilidad de error de tipo I
+probabilidad_error_tipo_I <- pnorm(q_critico_superior, mean = media_nula, sd =SE, lower.tail = FALSE)
+
+cat("Probabilidad error tipo I = ",probabilidad_error_tipo_I, "\n")
+```
+
+Como bien se puede apreciar en los resultados obtenidos, la probabilidad de cometer un error de tipo I es de 0,006209665.
+
+#### Pregunta 2
+
+**Si el verdadero volumen medio de los bidones fuera de 10,2 litros, ¿cuál sería la probabilidad de que el ingeniero, que obviamente no conoce este dato, cometa un error de tipo II? Para responder, agregue al gráfico anterior la verdadera distribución muestral de las medias y marquen (con otro color) la zona correspondiente a la probabilidad solicitada, para luego, basándose en este gráfico, calcular el área correspondiente.**
+
+Primero, se va a superponer una nueva curva con media de 10,2 litros. Además se marcará con azul la zona correspondiente la probabilidad de que no se cometa un error tipo II.
+
+```{r}
+
+media_efecto = 10.2
+
+g <- g + stat_function (
+    fun = dnorm ,
+    args = list ( mean = media_efecto , sd = SE ) ,
+    colour = " blue " , size = 1)
+  
+x1 <- seq(9.5, 11, by = 0.01)
+y1 <- dnorm (x , mean = media_efecto , sd = SE )
+
+
+g <- g + geom_area ( data = subset ( data.frame ( x1 , y1 ) ,
+                                     x > q_critico_superior ) ,
+                     aes ( x = x1 , y = y1 ) ,
+                     colour = " blue " ,
+                     fill = " blue " ,
+                     alpha = 0.5)
+
+print ( g )
+
+
+```
+
+Ahora, se procederá a calcular el poder estadístico y, con este mismo, la probabiliad de que se cometa un error de tipo II.
+
+```{r}
+poder <-  pnorm ( q_critico_superior ,
+          mean = media_efecto ,
+          sd = SE ,
+          lower.tail = FALSE )
+cat ( " Poder = " , poder , " \n" )
+
+# Calcular la probabilidad de cometer un error tipo II 
+beta <- 1 - poder
+cat(" Probabilidad error tipo II = " , beta , " \n ")
+
+```
+
+En base a los resultados, la probabilidad de que el ingeniero cometa un error de tipo II es de 0,6914625.
+
+#### Pregunta 3
+
+**Como no se conoce el verdadero volumen medio, genere un gráfico del poder estadístico con las condiciones anteriores, pero suponiendo que el verdadero volumen medio podría variar de 10 a 10,5 litros.**
+
+Se genera el gráfico del poder estadístico que varía entre los 10 y 10,5 litros.
+
+```{r}
+desviacion_estandar <- 1
+tamanio_muestra <- 100
+niveles_alfa <- 0.006209665
+medias_verdaderas <- seq(10, 10.5, by = 0.01)  
+
+# Definir una función que calcula el poder
+calcular_poder <- function(media_verdadera) {
+  diferencias_medias <- (media_verdadera - 10) / 1
+  result <- power.t.test(n = tamanio_muestra, delta = diferencias_medias, sd = 1, sig.level = niveles_alfa, power = NULL, type = "one.sample", alternative = "one.sided")
+  return(result$power)
+}
+
+# Aplicar la función a cada elemento de medias_verdaderas
+poder <- sapply(medias_verdaderas, calcular_poder)
+
+
+# Gráfico del poder estadístico
+plot(medias_verdaderas, poder, type = "l", 
+     main = "Poder Estadístico vs. Valor Verdadero Medio",
+     xlab = "Valor Verdadero Medio (litros)",
+     ylab = "Poder Estadístico")
+
+```
+
+#### Pregunta 4
+
+**Considerando un volumen medio de 10 litros, ¿cuántos bidones deberían revisarse para conseguir un poder estadístico de 0,75 y un nivel de significación de 0,05?**
+
+Se utilizará la función **pwr.t.test()** debido a que esta se encargará de calcular el parámetro faltante, que en este caso viene siendo la cantidad de bidones que deberían revisarse.
+
+El tamaño del efecto se calculará mediante la ecuación **d de Cohen** para una muestra.
+
+```{r}
+# Definir el tamaño del efecto
+tamaño_efecto <- (10.25 - 10)/1 
+
+# Calcular el poder con el tamaño del efecto y otros parámetros
+poder <- pwr.t.test(d = tamaño_efecto, 
+                    sig.level = 0.05, 
+                    power = 0.75, 
+                    type = "one.sample", 
+                    alternative = "greater")
+
+# Imprimir el resultado
+poder
+
+```
+
+Como bien se puede apreciar, la cantidad de bidones que deberían revisarse para conseguir el poder estadístico de 0,75 y un nivel de significación de 0,05 es 87,43775.
+
+#### Pregunta 5
+
+**¿Y si el ingeniero fuese muy exigente y quisiera reducir la probabilidad de cometer un error de tipo I a un 1% solamente?**
+
+Para saber lo que ocurriría en el caso mencionado, se ha de utilizar el mismo script que en la pregunta 4, con la diferencia de que el **sig.level** será cambiado por el nivel de significancia de 0,01.
+
+```{r}
+tamaño_efecto <- (10.25 - 10)/1 
+
+poder <- pwr.t.test(d = tamaño_efecto, 
+                    sig.level = 0.01, 
+                    power = 0.75, 
+                    type = "one.sample", 
+                    alternative = "greater")
+
+poder
+```
+
+En este caso, la cantidad de bidones ha de ser 146,7975.
