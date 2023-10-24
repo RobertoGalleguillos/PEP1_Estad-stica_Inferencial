@@ -1,0 +1,68 @@
+---
+title: "Equipo03"
+output: html_document
+date: "2023-10-24"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Pregunta 1
+
+
+```{r}
+library(tidyverse)
+
+datos <- read.csv2("EI-2023-2-PE1-Datos.csv", sep = ",") #son 152
+
+```
+
+```{r}
+set.seed(141)
+instancia <- 1:152
+datos_100_muestra <- datos[sample(instancia, 100), ]
+datos_pregunta1 <- datos_100_muestra %>% filter((programa == "carbos") | (programa == "grasas"))
+carbos <- datos_pregunta1 %>% filter(programa == "carbos") #son 25
+grasas <- datos_pregunta1 %>% filter(programa == "grasas")#son 25
+
+carbos_inical <- carbos$peso.inicial
+carbos_final <- carbos$peso.final
+
+carbos_exito <- carbos %>% filter(as.numeric(carbos_inical) - as.numeric(carbos_final) >= 1.5) #son 13
+grasas_exito <- grasas %>% filter(as.numeric(peso.inicial)-as.numeric(peso.final) >= 0.75) #son 15
+
+
+
+
+```
+
+Hipótesis:
+
+- $H_0$: Las proporciones de la cantidad de gente que logran bajar 1500 gramos con la dieta baja en carbohidratos son las mismas que de la cantidad de personas que logran bajar más de 750 gramos con la dieta baja en grasas.
+- $H_A$: Las proporciones de la cantidad de gente que logran bajar 1500 gramos con la dieta baja en carbohidratos son diferentes en comparación a la cantidad de personas que logran bajar más de 750 gramos con la dieta baja en grasas.
+
+Condiciones para Wilson:
+
+Las muestras son independinetes. En este caso, las muestras, en efecto, son independientes, puesto que se está trabajando con una muestra aleatoria.
+
+Condición de éxito-fracaso. Se cuemple puesto que tanto éxitos como fracasos son al menos 10.
+
+Ahora, se procede a realizar el método Wilson.
+```{r}
+success <- c(13, 15)
+n <- c(25, 25)
+
+prop.test(success, n= n, alternative = "two.sided" , conf.level = 0.95)
+```
+
+Puesto que el p-value es mayor al nivel de significancia, no hay pruebas suficientes, por lo que se falla en rechazar la hipotesis nula a favor de la hipótesis alternativa.
+
+###Pregunta 2
+
+Para esta pregunta, se trabajará con ANOVA para muestras independientes.
+
+```{r}
+
+```
+
